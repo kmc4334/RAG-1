@@ -137,24 +137,4 @@ POST /scrape
 
 API 사용 (Postman)
 
-POST http://127.0.0.1:8000/rag/store
 
-Headers
-
-Content-Type: application/json
-
-
-Body
-
-{
-  "text": "여기에 챗봇이 알았으면 하는 정보를 입력하세요.",
-  "type": "manual_entry"
-}
-
-▶ 실행 방법
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-
-
-프론트엔드는 frontend/index.html을 브라우저에서 직접 열어 사용합니다.
