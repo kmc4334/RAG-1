@@ -9,12 +9,22 @@ from pymongo.collection import Collection
 from dotenv import load_dotenv
 
 
-load_dotenv()
+from pathlib import Path
+
+# Explicitly load .env from the backend directory (parent of app)
+env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=env_path, override=True)
+
+# Debug print to verify correct key loading
+key = os.getenv("OPENAI_API_KEY", "")
+masked_key = key[:8] + "..." + key[-4:] if len(key) > 12 else "NOT_SET"
+print(f"[DEBUG] Loaded .env from: {env_path}")
+print(f"[DEBUG] Current OPENAI_API_KEY: {masked_key}")
 
 MONGODB_URI = os.getenv("MONGODB_URI", "")
 MONGODB_DB = os.getenv("MONGODB_DB", "rag_learning")
 MONGODB_COLLECTION = os.getenv("MONGODB_COLLECTION", "rag_documents")
-VECTOR_INDEX_NAME = os.getenv("VECTOR_INDEX_NAME", "rag_vector_index")
+VECTOR_INDEX_NAME = os.getenv("VECTOR_INDEX_NAME", "search")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 
@@ -82,24 +92,25 @@ def build_rag_context(
     limit: int = 3,
 ) -> list[dict[str, Any]]:
     """
-    Use MongoDB Atlas Vector Search to retrieve similar documents.
-    The vector index is assumed to exist already.
+    Use MongoDB Atlas Search (knnBeta) to retrieve similar documents.
+    This supports the 'Standard Search Index' with mappings.
     """
     pipeline = [
         {
-            "$vectorSearch": {
+            "$search": {
                 "index": VECTOR_INDEX_NAME,
-                "path": "embedding",
-                "queryVector": query_vector,
-                "numCandidates": 50,
-                "limit": limit,
+                "knnBeta": {
+                    "vector": query_vector,
+                    "path": "embedding",
+                    "k": limit
+                }
             }
         },
         {
             "$project": {
                 "_id": 0,
                 "text": 1,
-                "score": {"$meta": "vectorSearchScore"},
+                "score": {"$meta": "searchScore"},
             }
         },
     ]
