@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Product AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Chat Interface -->
+        <main class="chat-panel">
+            <header class="chat-header">
+                <div class="logo">✨ Product AI</div>
+            </header>
+
+            <div class="chat-window" id="chatWindow">
+                <div class="message assistant">
+                    <div class="bubble">
+                        안녕하세요! 무엇을 도와드릴까요?
+                    </div>
+                </div>
+                <!-- Recommended Questions -->
+                <div class="recommendation-container">
+                    <button class="recommend-chip" onclick="sendRecommendation('배송은 언제 되나요?')">🚚 배송 확인</button>
+                    <button class="recommend-chip" onclick="sendRecommendation('반품 정책 알려줘')">↩️ 반품 정책</button>
+                    <button class="recommend-chip" onclick="sendRecommendation('인기 상품 추천해줘')">⭐ 인기 상품</button>
+                </div>
+            </div>
+
+            <footer class="input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="userInput" placeholder="질문을 입력하세요..." autocomplete="off">
+                    <button id="sendBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </footer>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
