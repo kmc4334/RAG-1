@@ -79,8 +79,8 @@ graph TD
     BE -->|8. 최종 응답| FE
     FE -->|9. 화면 표시| User
 ```
-⚙️ 동작 원리
-
+###⚙️ 동작 원리
+```
 지식 저장
 
 입력된 텍스트를 임베딩(벡터)으로 변환하여 MongoDB Atlas에 저장
@@ -100,8 +100,8 @@ Context 기반 답변 생성
 응답
 
 최종 답변을 사용자에게 반환
-
-🚀 주요 API 기능
+```
+###🚀 주요 API 기능
 1. RAG 및 데이터 관리
 
 POST /rag/store
@@ -134,7 +134,12 @@ DuckDuckGo를 이용해 특정 공급사·제품 관련 웹 페이지 검색 및
 POST /scrape
 지정된 URL을 스크래핑하고
 옵션에 따라 즉시 RAG 데이터로 저장
-
-API 사용 (Postman)
-
+```
+###📸 실행 화면 캡처
+Postman
+<img width="1858" height="724" src="https://github.com/user-attachments/assets/090cb8c0-eaa4-447b-a5fe-9f36b98ad71d" />
+MongoDB Atlas
+<img width="1902" height="913" src="https://github.com/user-attachments/assets/d6e5d193-b28c-4d5a-bc19-6a069c3cb829" />
+Chatbot UI
+<img width="887" height="698" src="https://github.com/user-attachments/assets/d1ded200-5b04-4e05-92d1-94c4ebf83872" /> ```
 
