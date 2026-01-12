@@ -60,7 +60,7 @@
 
 본 프로젝트는 **RAG (Retrieval-Augmented Generation)** 패턴을 기반으로 동작합니다.
 
-```mermaid
+```mermaiㅇ
 graph TD
     User[사용자] -->|1. 입력/질문| FE[Frontend (Web UI)]
     FE -->|2. API 요청| BE[Backend (FastAPI)]
