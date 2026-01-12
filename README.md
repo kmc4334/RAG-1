@@ -139,9 +139,9 @@ POST /scrape
 ```
 ## 📸 실행 화면 캡처
 Postman
-<img width="1858" height="724" src="https://github.com/user-attachments/assets/090cb8c0-eaa4-447b-a5fe-9f36b98ad71d" />
+<img width="887" height="698" src="https://github.com/user-attachments/assets/d1ded200-5b04-4e05-92d1-94c4ebf83872" /> 
 MongoDB Atlas
-<img width="1902" height="913" src="https://github.com/user-attachments/assets/d6e5d193-b28c-4d5a-bc19-6a069c3cb829" />
+<<img width="1858" height="724" src="https://github.com/user-attachments/assets/090cb8c0-eaa4-447b-a5fe-9f36b98ad71d" />
 Chatbot UI
-<img width="887" height="698" src="https://github.com/user-attachments/assets/d1ded200-5b04-4e05-92d1-94c4ebf83872" /> ```
+<img width="1902" height="913" src="https://github.com/user-attachments/assets/d6e5d193-b28c-4d5a-bc19-6a069c3cb829" />
 
