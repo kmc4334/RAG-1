@@ -1,8 +1,12 @@
-# RAG vs LLM 학습 프로젝트
+RAG vs LLM 학습 프로젝트
 
-아래는 프로젝트의 간단한 폴더 구조입니다.
+이 프로젝트는 RAG(Retrieval-Augmented Generation) 와
+일반 LLM(컨텍스트 없이 응답) 의 차이를 직접 비교·학습하기 위한 실습용 프로젝트입니다.
 
-```
+웹 또는 API(Postman)를 통해 지식을 저장하고,
+사용자 질문 시 벡터 검색 기반(RAG) 으로 답변이 생성되는 전체 흐름을 구현했습니다.
+
+📁 프로젝트 폴더 구조
 .
 ├── backend
 │   ├── app
@@ -14,35 +18,55 @@
     ├── app.js
     ├── index.html
     └── styles.css
-```
 
-## 환경 변수
+🔐 환경 변수 설정
 
-아래 환경 변수는 백엔드 실행 시 필요합니다. `python-dotenv`를 사용하므로
-`backend/.env`에 환경 변수를 저장하면 자동으로 로드됩니다.
+백엔드는 python-dotenv를 사용하며,
+아래 환경 변수는 backend/.env 파일에 설정해야 합니다.
 
-- `MONGODB_URI`: MongoDB Atlas 접속 문자열
-- `MONGODB_DB`: 데이터베이스 이름 (기본값: `rag_learning`)
-- `MONGODB_COLLECTION`: 컬렉션 이름 (기본값: `rag_documents`)
-- `VECTOR_INDEX_NAME`: Vector Search 인덱스 이름 (기본값: `rag_vector_index`)
-- `OPENAI_API_KEY`: OpenAI API 키
+필수 환경 변수
 
-예시 (`backend/.env`):
-```
+MONGODB_URI : MongoDB Atlas 접속 문자열
+
+MONGODB_DB : 데이터베이스 이름 (기본값: rag_learning)
+
+MONGODB_COLLECTION : 컬렉션 이름 (기본값: rag_documents)
+
+VECTOR_INDEX_NAME : Vector Search 인덱스 이름 (기본값: rag_vector_index)
+
+OPENAI_API_KEY : OpenAI API 키
+
+예시 (backend/.env)
 MONGODB_URI=mongodb+srv://...
 OPENAI_API_KEY=sk-...
-```
 
-## 기술 스택
+🛠 기술 스택
+Backend
 
-- **Backend**: Python, FastAPI, MongoDB Atlas (Vector Search), OpenAI API, DuckDuckGo Search, BeautifulSoup
-- **Frontend**: HTML, JavaScript (Vanilla), CSS
+Python
 
-## 시스템 구조 (Architecture)
+FastAPI
 
-이 프로젝트는 **RAG (Retrieval-Augmented Generation)** 패턴을 사용하여 정확한 답변을 제공합니다.
+MongoDB Atlas (Vector Search)
 
-```mermaid
+OpenAI API
+
+DuckDuckGo Search
+
+BeautifulSoup
+
+Frontend
+
+HTML
+
+JavaScript (Vanilla)
+
+CSS
+
+🧠 시스템 아키텍처 (Architecture)
+
+본 프로젝트는 RAG 패턴을 기반으로 동작합니다.
+
 graph TD
     User[사용자] -->|1. 입력/질문| FE[Frontend (Web UI)]
     FE -->|2. API 요청| BE[Backend (FastAPI)]
@@ -54,75 +78,111 @@ graph TD
         BE -->|4. 데이터 저장/검색| DB[(MongoDB Atlas\nVector Search)]
         DB -.->|5. 관련 지식(Context)| BE
         
-        BE -->|6. 프롬프트 구성 (질문+Context)| AI_Chat[OpenAI (GPT-4o)]
+        BE -->|6. 프롬프트 구성 (질문 + Context)| AI_Chat[OpenAI (GPT-4o)]
         AI_Chat -.->|7. 답변 생성| BE
     end
     
     BE -->|8. 최종 응답| FE
     FE -->|9. 화면 표시| User
-```
 
-### 동작 원리
-1.  **지식 저장**: 사용자가 입력한 데이터는 임베딩(숫자 벡터)으로 변환되어 **MongoDB Atlas**에 저장됩니다.
-2.  **검색 (Retrieval)**: 사용자가 질문하면, 질문을 벡터로 변환하여 DB에서 가장 유사한 내용을 찾습니다 (Vector Search).
-3.  **생성 (Generation)**: 찾아낸 내용(Context)과 질문을 합쳐 **GPT-4o**에게 보냅니다.
-4.  **응답**: LLM은 오직 제공된 Context에 기반하여 답변을 생성합니다.
+⚙️ 동작 원리
 
-## 주요 API 기능
+지식 저장
 
-이 프로젝트는 RAG와 일반 LLM의 차이를 학습하기 위해 다양한 엔드포인트를 제공합니다.
+입력된 텍스트를 임베딩(벡터)으로 변환하여 MongoDB Atlas에 저장
 
-### 1. RAG 및 데이터 관리
-- **`/rag/store`**: 텍스트 데이터를 임베딩하여 벡터 DB에 저장합니다.
-- **`/rag/list`**: 저장된 지식 목록을 조회합니다.
-- **`/rag/{document_id}`** (DELETE): 특정 지식을 삭제합니다.
+검색 (Retrieval)
 
-### 2. 챗봇 및 검색
-- **`/chat/query`**: 저장된 지식을 기반으로 답변합니다 (RAG).
-- **`/chat/route`**: 질문의 유사도 점수에 따라 RAG 사용 여부를 동적으로 결정합니다.
+사용자 질문을 벡터로 변환
 
-### 3. 웹 수집 및 확장 기능
-- **`/business/rag`**: 특정 공급사와 제품을 검색(DuckDuckGo)하여 관련 웹페이지 정보를 수집합니다.
-- **`/scrape`**: 지정된 URL의 내용을 스크래핑하고, 옵션에 따라 바로 RAG 데이터로 저장할 수 있습니다.
+Vector Search를 통해 가장 유사한 문서를 검색
 
-## 💾 데이터 저장 방법 (Data Storage)
+생성 (Generation)
 
-챗봇이 답변할 지식을 추가하는 두 가지 방법입니다.
+검색된 Context + 사용자 질문을 GPT-4o에 전달
 
-### 방법 1: 웹 화면 사용 (가장 쉬움)
-1. **[http://localhost:5500](http://localhost:5500)** 에 접속합니다.
-2. 왼쪽 **"지식 추가"** 입력창에 제품 정보나 정책을 입력합니다.
-   - 예: `[제품명] 로스트아크, [출시일] 2018년`
-3. **"지식 저장하기"** 버튼을 클릭합니다.
+Context 기반 답변 생성
 
-### 방법 2: API 사용 (Postman 등)
-**POST** `http://127.0.0.1:8000/rag/store`
-- **Header**: `Content-Type: application/json`
-- **Body**:
-  ```json
-  {
-    "text": "여기에 챗봇이 알았으면 하는 정보를 입력하세요.",
-    "type": "manual_entry"
-  }
-  ```
+응답
 
-## 실행 방법 (예시)
+최종 답변을 사용자에게 반환
 
-```bash
+🚀 주요 API 기능
+1. RAG 및 데이터 관리
+
+POST /rag/store
+텍스트 데이터를 임베딩하여 벡터 DB에 저장
+
+GET /rag/list
+저장된 지식 목록 조회
+
+DELETE /rag/{document_id}
+특정 지식 삭제
+
+2. 챗봇 및 질의
+
+POST /chat/query
+저장된 지식을 기반으로 답변 생성 (RAG)
+
+POST /chat/route
+질문 유사도에 따라
+
+RAG 사용
+
+일반 LLM 사용
+을 동적으로 분기
+
+3. 웹 수집 및 확장 기능
+
+POST /business/rag
+DuckDuckGo를 이용해 특정 공급사·제품 관련 웹 페이지 검색 및 수집
+
+POST /scrape
+지정된 URL을 스크래핑하고
+옵션에 따라 즉시 RAG 데이터로 저장
+
+💾 데이터 저장 방법
+방법 1️⃣ 웹 UI 사용 (권장)
+
+http://localhost:5500 접속
+
+왼쪽 지식 추가 입력창에 정보 입력
+
+예: [제품명] 로스트아크, [출시일] 2018년
+
+지식 저장하기 버튼 클릭
+
+방법 2️⃣ API 사용 (Postman)
+
+POST http://127.0.0.1:8000/rag/store
+
+Headers
+
+Content-Type: application/json
+
+
+Body
+
+{
+  "text": "여기에 챗봇이 알았으면 하는 정보를 입력하세요.",
+  "type": "manual_entry"
+}
+
+▶ 실행 방법
 cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload
-```
 
-프론트엔드는 `frontend/index.html`을 브라우저에서 열어 사용합니다.
-React는 CDN으로 로드되므로 별도 빌드 과정이 필요하지 않습니다.
 
-##캡쳐
-<img width="887" height="698" alt="image" src="https://github.com/user-attachments/assets/d1ded200-5b04-4e05-92d1-94c4ebf83872" />
+프론트엔드는 frontend/index.html을 브라우저에서 직접 열어 사용합니다.
+(빌드 과정 없음)
+
+📸 실행 화면 캡처
 Postman
 <img width="1858" height="724" alt="image" src="https://github.com/user-attachments/assets/090cb8c0-eaa4-447b-a5fe-9f36b98ad71d" />
 MongoDB Atlas
 <img width="1902" height="913" alt="image" src="https://github.com/user-attachments/assets/d6e5d193-b28c-4d5a-bc19-6a069c3cb829" />
-ChatBot
+Chatbot UI
+<img width="887" height="698" alt="image" src="https://github.com/user-attachments/assets/d1ded200-5b04-4e05-92d1-94c4ebf83872" />
 
 
