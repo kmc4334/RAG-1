@@ -1,6 +1,10 @@
 """
-FastAPI backend for a learning project that compares RAG vs plain LLM responses.
-We keep the code intentionally simple and heavily commented for study.
+본 프로젝트는 포스트맨을 통해 API를 호출하여,
+정보가 포함된 URL에서 텍스트를 수집하고 이를 임베딩하여
+벡터 데이터베이스에 저장한다.
+이후 사용자가 챗봇 질의 API를 호출하면,
+벡터 DB에 저장된 정보를 검색하여
+RAG(Retrieval-Augmented Generation) 방식으로 답변을 생성·응답하는 시스템이다.
 """
 from datetime import datetime, timezone
 from typing import Any
@@ -12,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
-from db import (
+from .db import (
     build_rag_context,
     delete_rag_document,
     get_collection,
@@ -84,6 +88,29 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+
+def helper_embed_and_store(text: str, entity: str | None = None, slot: str | None = None, k_type: str | None = None) -> None:
+    client = OpenAI()
+    embedding_response = client.embeddings.create(
+        model="text-embedding-3-small",
+        input=text,
+    )
+    print(f"\n[DEBUG] embedding_response:\n{embedding_response}\n")
+    vector = embedding_response.data[0].embedding
+    document = {
+        "type": "rag_document",
+        "text": text,
+        "entity": entity,
+        "slot": slot,
+        "knowledge_type": k_type,
+        "embedding": vector,
+        "created_at": datetime.now(timezone.utc),
+    }
+    collection = get_collection()
+    store_rag_document(collection, document)
+    print(f"임베딩 내용이 저장되었습니다: {text[:50].replace('\n', ' ')}...")
+
+
 @app.post("/rag/store")
 def store_rag_knowledge(payload: RagStoreRequest) -> dict[str, str]:
     """
@@ -92,28 +119,10 @@ def store_rag_knowledge(payload: RagStoreRequest) -> dict[str, str]:
       1) Embed the text with OpenAI embeddings.
       2) Save the text + embedding vector to MongoDB Atlas.
     """
-    client = OpenAI()
     try:
-        embedding_response = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=payload.text,
-        )
-    except Exception as exc:  # OpenAI can raise multiple exception types
-        raise HTTPException(status_code=502, detail=f"Embedding failed: {exc}") from exc
-
-    vector = embedding_response.data[0].embedding
-    document = {
-        "type": "rag_document",
-        "text": payload.text,
-        "entity": payload.entity,
-        "slot": payload.slot,
-        "knowledge_type": payload.type,
-        "embedding": vector,
-        "created_at": datetime.now(timezone.utc),
-    }
-
-    collection = get_collection()
-    store_rag_document(collection, document)
+        helper_embed_and_store(payload.text, payload.entity, payload.slot, payload.type)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Embedding/Storage failed: {exc}") from exc
 
     return {"message": "Knowledge stored successfully."}
 
@@ -174,17 +183,14 @@ def chat_query(payload: ChatQueryRequest) -> ChatQueryResponse:
     retrieved = build_rag_context(collection, question_vector, limit=3)
     context_text = "\n".join([f"- {doc['text']}" for doc in retrieved])
 
-    system_prompt = (
-        "You are a helpful assistant. Use the provided context when relevant, "
-        "and say when the context does not contain the answer."
-    )
+    system_prompt = "당신은 쇼핑몰 및 제품 Q&A 어시스턴트입니다. Context에 있는 정보를 바탕으로 답변해 주세요."
 
     user_prompt = (
         "Context:\n"
         f"{context_text}\n\n"
-        "Question:\n"
+        "사용자 질문:\n"
         f"{payload.question}\n\n"
-        "Answer in Korean to match the learning UI."
+        "최종 답변:"
     )
 
     try:
@@ -235,25 +241,26 @@ def chat_route(payload: ChatRouteRequest) -> ChatRouteResponse:
     use_rag = top_score >= payload.threshold
     route = "rag" if use_rag else "llm"
 
-    system_prompt = (
-        "You are a helpful assistant. Use the provided context when relevant, "
-        "and say when the context does not contain the answer."
-    )
+    system_prompt = "당신은 쇼핑몰 및 제품 Q&A 어시스턴트입니다. Context에 있는 정보를 바탕으로 답변해 주세요."
 
     if use_rag:
         context_text = "\n".join([f"- {doc['text']}" for doc in retrieved])
         user_prompt = (
             "Context:\n"
             f"{context_text}\n\n"
-            "Question:\n"
+            "사용자 질문:\n"
             f"{payload.question}\n\n"
-            "Answer in Korean to match the learning UI."
+            "최종 답변:"
         )
     else:
+        # Fallback for LLM-only route, though prompts emphasize strict context usage.
+        # Consistency is key, but without context, it will likely say "Not enough info".
         user_prompt = (
-            "Question:\n"
+            "Context:\n"
+            "제공된 정보가 없습니다.\n\n"
+            "사용자 질문:\n"
             f"{payload.question}\n\n"
-            "Answer in Korean to match the learning UI."
+            "최종 답변:"
         )
 
     try:
@@ -287,6 +294,28 @@ class BusinessRequest(BaseModel):
     supplierName: str
     productName: str
     
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+}
+
+def extract_visible_text(html: str) -> str:
+    try:
+        soup = BeautifulSoup(html, "html.parser")
+        # Remove script and style elements
+        for script in soup(["script", "style"]):
+            script.extract()
+        text = soup.get_text()
+        # Break into lines and remove leading/trailing space on each
+        lines = (line.strip() for line in text.splitlines())
+        # Break multi-headlines into a line each
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        # Drop blank lines
+        text = '\n'.join(chunk for chunk in chunks if chunk)
+        return text
+    except Exception:
+        return ""
+
 def fetch_page_text(session: requests.Session, url: str, timeout: int = 10) -> str | None:
     try:
         resp = session.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True)
@@ -313,6 +342,7 @@ def ddg_search(query: str, k: int = 5) -> list[str]:
 
 @app.post("/business/rag")
 def business_rag(payload: BusinessRequest) -> dict[str, Any]:
+    print(payload)
     query = f"{payload.supplierName} {payload.productName}".strip()
 
     urls = ddg_search(query, k=5)
@@ -332,5 +362,51 @@ def business_rag(payload: BusinessRequest) -> dict[str, Any]:
         "query": query,
         "urls": urls,
         "fetched": len(texts),
+        "documents": texts,
+    }
+
+class ScrapeRequest(BaseModel):
+    query: str = ""
+    urls: list[str]
+    store: bool = False
+
+
+@app.post("/scrape")
+def scrape_urls(payload: ScrapeRequest) -> dict[str, Any]:
+    """
+    Scrape text from the provided URLs.
+    If store is True, embed and save to RAG database.
+    """
+    texts: list[dict[str, str]] = []
+    stored_count = 0
+    
+    # Use a session for connection pooling
+    with requests.Session() as session:
+        print(f"\n[DEBUG] requests.Session object: {session}\n")
+        for url in payload.urls:
+            page_text = fetch_page_text(session, url)
+            if page_text:
+                safe_text = page_text[:20000]
+                doc_info = {"url": url, "text": safe_text}
+                
+                if payload.store:
+                    try:
+                        helper_embed_and_store(safe_text, entity=payload.query or None, k_type="scraped_web_content")
+                        print(f"[Scrape] Successfully stored scraped content from {url}")
+                        doc_info["stored"] = True
+                        stored_count += 1
+                    except Exception as e:
+                        doc_info["stored"] = False
+                        doc_info["store_error"] = str(e)
+                
+                texts.append(doc_info)
+            else:
+                texts.append({"url": url, "error": "Failed to fetch content"})
+
+    return {
+        "query": payload.query,
+        "urls": payload.urls,
+        "fetched": len([t for t in texts if "text" in t]),
+        "stored_count": stored_count,
         "documents": texts,
     }
